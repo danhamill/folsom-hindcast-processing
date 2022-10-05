@@ -1,0 +1,8 @@
+name: py39
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pandas
+  - pip
+    - -e dist/pydsstools-2.2-cp39-cp39-win_amd64.whl
