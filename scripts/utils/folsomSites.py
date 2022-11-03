@@ -25,5 +25,16 @@ sites = {
     'MFAC1F': 'FLOW-NAT',
     'CBAC1F': 'FLOW-NAT',
     'MFPC1F': 'FLOW-NAT',
-    'RUFC1F': 'FLOW-NAT'
+    'RUFC1F': 'FLOW-NAT',
+    'MFAC1':'FLOW', 
+    'SVCC1':'FLOW', 
+    'RUFC1':'FLOW', 
+    'RRGC1':'FLOW', 
+    'LNLC1':'FLOW', 
+    'RBBC1':'FLOW', 
+    'CBAC1':'FLOW', 
+    'ICHC1':'FLOW', 
+    'FOLC1':'FLOW', 
+    'UNVC1':'FLOW', 
+    'HLLC1':'FLOW'
 }
