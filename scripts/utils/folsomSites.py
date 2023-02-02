@@ -13,7 +13,7 @@ sites = {
     'SVCC1L': 'FLOW-LOC',
     'MFAC1L': 'FLOW-LOC',
     'MFPC1L': 'FLOW-LOC',
-    # 'DUMMY': 'FLOW',
+    'DUMMY': 'FLOW',
     # 'LOCAL_SF FOLC1L': 'FLOW-LOC',
     'RRGC1L': 'FLOW-LOC',
     'SPYC1F': 'FLOW-NAT',
