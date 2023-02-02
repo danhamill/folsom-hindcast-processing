@@ -4,10 +4,12 @@ from unittest import skip
 import pandas as pd
 from pydsstools.heclib.dss import HecDss
 from pydsstools.core import TimeSeriesContainer
-from utils.folsomSites import sites
 import gc
 
 def main(ensembleStartYear):
+    sites = {
+        'SPYC1':'FLOW'
+    }
 
     patterns = glob(r'data\*')
 
@@ -23,7 +25,7 @@ def main(ensembleStartYear):
             
             returnInterval = scaling.split('\\')[-1]
 
-            outDir = rf'outputAll\{patternYear}'
+            outDir = rf'outputMissing\{patternYear}'
             os.makedirs(outDir, exist_ok=True)
             dssOut = rf'{outDir}\{patternYear}_{returnInterval}.dss'
             print(f'Currently Processing {dssOut}...')
@@ -93,6 +95,7 @@ def main(ensembleStartYear):
 
                 data = data.stack(level=[0,1,2,3])
                 data.index.names = ['date','site','tsType','year', 'fileDate']
+                # data = data.loc[data.index.get_level_values('tsType') == 'QINE',:]
                 data = data * 1000
                 data = data.loc[data.index.get_level_values('site').isin(sites.keys()),:]
 
@@ -132,33 +135,33 @@ def main(ensembleStartYear):
                 gc.collect()
                 targetDate += 24
 
-            # process in the determinsic run from YYYY_Event_Scalings
-            print('here')
+            # # process in the determinsic run from YYYY_Event_Scalings
+            # print('here')
 
-            data = pd.read_excel(
-                eventScaling,
-                sheet_name = returnInterval,
-                skiprows = 7,
-                header=None,
-                names =['flow'],
-                usecols = 'C'
-            )
-            site = 'FOLC1F'
-            pname = f'/{returnInterval}/{site}/{sites[site]}//1HOUR//'
+            # data = pd.read_excel(
+            #     eventScaling,
+            #     sheet_name = returnInterval,
+            #     skiprows = 7,
+            #     header=None,
+            #     names =['flow'],
+            #     usecols = 'C'
+            # )
+            # site = 'FOLC1F'
+            # pname = f'/{returnInterval}/{site}/{sites[site]}//1HOUR//'
 
-            tsc = TimeSeriesContainer()
-            tsc.pathname = pname
-            tsc.startDateTime = '20Dec2999 04:00'
-            tsc.units = 'cfs'
-            tsc.type = 'INST-VAL'
-            tsc.interval=1
-            tsc.numberValues = data.shape[0]
-            tsc.values = data.flow.to_list()
+            # tsc = TimeSeriesContainer()
+            # tsc.pathname = pname
+            # tsc.startDateTime = '20Dec2999 04:00'
+            # tsc.units = 'cfs'
+            # tsc.type = 'INST-VAL'
+            # tsc.interval=1
+            # tsc.numberValues = data.shape[0]
+            # tsc.values = data.flow.to_list()
 
-            with HecDss.Open(dssOut) as fid:
-                fid.put_ts(tsc)
-            del site, pname, tsc, data
-            gc.collect()
+            # with HecDss.Open(dssOut) as fid:
+            #     fid.put_ts(tsc)
+            # del site, pname, tsc, data
+            # gc.collect()
 
 if __name__ == '__main__':
 

@@ -36,5 +36,6 @@ sites = {
     'ICHC1':'FLOW', 
     'FOLC1':'FLOW', 
     'UNVC1':'FLOW', 
-    'HLLC1':'FLOW'
+    'HLLC1':'FLOW',
+    'SPYC1':'FLOW'
 }

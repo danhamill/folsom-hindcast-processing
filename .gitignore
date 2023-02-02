@@ -2,3 +2,5 @@ data/
 *.dss
 ref/
 *.pyc
+*.7z
+

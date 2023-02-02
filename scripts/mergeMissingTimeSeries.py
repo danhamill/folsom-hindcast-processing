@@ -31,6 +31,7 @@ for allDataFile in allDataFiles:
             ts = fid.read_ts(pname)
 
             new_tsc = TimeSeriesContainer()
+            new_tsc.pathname = pname
             new_tsc.startDateTime = ts.startDateTime
             new_tsc.numberValues = ts.numberValues
             new_tsc.interval = ts.interval
@@ -38,6 +39,7 @@ for allDataFile in allDataFiles:
             new_tsc.values = ts.values
             new_tsc.units = ts.units
             new_tsc.type = ts.type
+            new_tsc.granularity = ts.granularity
 
             with HecDss.Open(allDataFile) as fidOut:
                 fidOut.put_ts(new_tsc)
