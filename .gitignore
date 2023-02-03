@@ -4,3 +4,19 @@ ref/
 *.pyc
 *.7z
 
+jythonResSim/.jython_cache/packages/jython.pkc
+jythonResSim/.jython_cache/packages/jython$1.pkc
+jythonResSim/.jython_cache/packages/packages.idx
+jythonResSim/.idea/.gitignore
+jythonResSim/.idea/jythonResSim.iml
+jythonResSim/.idea/misc.xml
+jythonResSim/.idea/modules.xml
+jythonResSim/.idea/vcs.xml
+jythonResSim/.idea/libraries/lib.xml
+jythonResSim/.vscode/settings.json
+jythonResSim/scripts/.jython_cache/packages/hec-dssvue-3.2.3.pkc
+jythonResSim/scripts/.jython_cache/packages/hec.pkc
+jythonResSim/scripts/.jython_cache/packages/jython.pkc
+jythonResSim/scripts/.jython_cache/packages/jythonUtils.pkc
+jythonResSim/scripts/.jython_cache/packages/packages.idx
+jythonResSim/scripts/.jython_cache/packages/rma.pkc
