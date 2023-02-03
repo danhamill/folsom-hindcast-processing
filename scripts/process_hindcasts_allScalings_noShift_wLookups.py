@@ -11,7 +11,7 @@ def main(ensembleStartYear):
 
     patterns = glob(r'data\*')
     lookup = {}
-    for pattern in patterns:
+    for pattern in patterns[1:]:
 
         patternYear = pattern.split('\\')[-1].split('_')[0]
 
@@ -25,7 +25,7 @@ def main(ensembleStartYear):
             returnInterval = scaling.split('\\')[-1]
             lookup[patternYear] = {}
 
-            outDir = rf'outputNoShift\{patternYear}'
+            outDir = rf'outputNoShift2\{patternYear}'
             os.makedirs(outDir, exist_ok=True)
             dssOut = rf'{outDir}\{patternYear}_{returnInterval}.dss'
             print(f'Currently Processing {dssOut}...')
@@ -169,8 +169,8 @@ def main(ensembleStartYear):
             del site, pname, tsc, data
             gc.collect()
 
-    with open(rf'{outDir.split(os.sep)[0]}\resSimLookup.json') as f:
-        json.dump(lookup, f, ensure_ascii=False, indent=4)
+    with open(rf'{outDir.split(os.sep)[0]}\resSimLookup.json', 'w') as f:
+        json.dump(lookup, f, ensure_ascii=False, indent=3)
 
 if __name__ == '__main__':
 
