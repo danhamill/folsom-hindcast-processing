@@ -12,12 +12,19 @@ import os
 
 
 def preProcessHindcastForSimulation(inputDssFile, oldPathNames, simulationDssFile):
-
+    """
+    Function to reformate DSS paths and write to a simulation file that will be used
+    in a headless HEC-ResSim ensemble compute.
+    :param inputDssFile: string
+    :param oldPathNames: List[String] dss file paths
+    :param simulationDssFile: Sting
+    :return: newPathNames: List[String]
+    """
     newPathNames = []
     for oldPathName in oldPathNames:
         parts = oldPathName.split('/')
         parts[1] = ''
-        parts[6] = parts[6].split('|')[0][2:]
+        parts[6] = parts[6].split('|')[0] + '|'
         newPathName = '/'.join(parts)
         newPathNames.append(newPathName)
     print 'here'
@@ -76,7 +83,7 @@ if __name__ == '__main__':
     folsomInflowPathname = ''
 
     #This should be what the resSim alternative is looking to read from
-    simulationDssFile = 'simulation.dss'
-    lookup = json.load(open(r"C:\workspace\git_clones\folsom-hindcast-processing\test.json"))
-    dataDir = r'../../outputNoShift'
+    simulationDssFile = 'simulation4.dss'
+    lookup = json.load(open(r"../../outputNoShift2/resSimLookup.json"))
+    dataDir = r'../../outputNoShift2'
     main(folsomInflowPathname, simulationDssFile, lookup, dataDir)
