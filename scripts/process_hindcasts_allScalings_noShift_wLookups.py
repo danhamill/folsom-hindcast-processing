@@ -2,6 +2,7 @@ from glob import glob
 import os
 import json
 import pandas as pd
+import numpy as np
 from pydsstools.heclib.dss import HecDss
 from pydsstools.core import TimeSeriesContainer
 from utils.folsomSites import sites
@@ -11,7 +12,7 @@ def main(ensembleStartYear):
 
     patterns = glob(r'data\*')
     lookup = {}
-    for pattern in patterns[1:]:
+    for pattern in patterns:
 
         patternYear = pattern.split('\\')[-1].split('_')[0]
 
@@ -23,9 +24,9 @@ def main(ensembleStartYear):
         for scaling in scalings:
             
             returnInterval = scaling.split('\\')[-1]
-            lookup[patternYear] = {}
+            lookup[patternYear][returnInterval] = {}
 
-            outDir = rf'outputNoShift2\{patternYear}'
+            outDir = rf'outputNoShift3\{patternYear}'
             os.makedirs(outDir, exist_ok=True)
             dssOut = rf'{outDir}\{patternYear}_{returnInterval}.dss'
             print(f'Currently Processing {dssOut}...')
@@ -34,14 +35,13 @@ def main(ensembleStartYear):
 
             targetDate = pd.Period(year=2999, day=23, month=12, hour=4,  freq='h')
             offset = pd.Period(year=2999, day=23, month=12, hour=4,  freq='h')
-
+            
             print('Currently Processing hefs files...')
             for hindcastFile in hindcastFiles:
-                pathNames = []
-                lookup[patternYear][returnInterval] = {}
-
+                
                 fileDate = hindcastFile.split('\\')[-1].split('_')[0]
-
+                lookup[patternYear][returnInterval][fileDate] = {}
+                
                 csvSites  = pd.read_csv(
                     hindcastFile, 
                     header = None, 
@@ -74,14 +74,19 @@ def main(ensembleStartYear):
                     names = ['site','tsType', 'year', 'fileDate']
                 )
 
+                idxReadCsv = idx[idx.get_level_values(0) != 'DUMMY']
+                idxAppend = idx[idx.get_level_values(0) == 'DUMMY']
+                
                 data = pd.read_csv(
                     hindcastFile, 
                     skiprows=2, 
                     header=None, 
-                    names = idx, 
+                    names = idxReadCsv, 
                     index_col=0, 
                     parse_dates=True
                 )
+
+                data[[idxAppend]] = np.nan
 
                 data = data.fillna(0.0)
 
@@ -103,8 +108,7 @@ def main(ensembleStartYear):
 
                 print('Currently Writing to dss...')          
                 
-                lookup[patternYear][returnInterval][fileDate] = {}
-                
+                pathNames = []
                 for (site, year), group in grouped:
                                        
                     group.name = 'flow'
