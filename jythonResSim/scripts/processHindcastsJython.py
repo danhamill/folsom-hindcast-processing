@@ -54,7 +54,6 @@ def preProcessHindcastForSimulation(inputDssFile, oldPathNames, simulationDssFil
         parts[6] = parts[6].split('|')[0] + '|'
         newPathName = '/'.join(parts)
         newPathNames.append(newPathName)
-    print 'here'
 
     for i, newPathName in enumerate(newPathNames):
         oldPathName = oldPathNames[i]
@@ -81,7 +80,7 @@ def preProcessHindcastForSimulation(inputDssFile, oldPathNames, simulationDssFil
 
 def postPorcessHindcastSimulation(startDate, simulationDssFile, folsomInflowPathname, forecastDate, scaling, resultsDssFile):
 
-    for inflowPath in folsomInflowPathname[1:]:
+    for inflowPath in folsomInflowPathname:
 
         fid = HecDss.open(simulationDssFile)
         ts = fid.get(inflowPath)
@@ -141,7 +140,7 @@ def main(folsomInflowPathname, simulationDssFile, lookup, dataDir ):
                 pathNames = buildInputPathnames(pattern, scaling, forecastDate)
                 inputDssFile = r'%s/%s/%s_%s.dss' % (dataDir, pattern, pattern,scaling)
                 assert os.path.exists(inputDssFile)
-                # newPathNames = preProcessHindcastForSimulation(inputDssFile, pathNames, simulationDssFile)
+                newPathNames = preProcessHindcastForSimulation(inputDssFile, pathNames, simulationDssFile)
 
                 # Run ResSim Here
                 # open watershed
@@ -153,9 +152,6 @@ def main(folsomInflowPathname, simulationDssFile, lookup, dataDir ):
                 # Post Process Results
                 # simulationDssFile = r'C:\workspace\git_clones\folsom-hindcast-processing\resultsFromUI\simulation.dss'
                 postPorcessHindcastSimulation(startDate, simulationDssFile, folsomInflowPathname, forecastDate, scaling, resultsDssFile)
-
-                print 'here'
-        print 'here'
 
 if __name__ == '__main__':
 
