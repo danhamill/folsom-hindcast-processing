@@ -16,3 +16,6 @@ Scheduler*
 *.docx
 *.pdf
 jythonResSim/.vscode/
+jythonResSim/model/
+outputNoShift3/resSimLookup.json
+testResSim/untitled/.idea/.gitignore
