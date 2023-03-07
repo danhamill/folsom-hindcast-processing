@@ -1,58 +1,48 @@
-# name=test
-# description=test
-# displaytouser=true
-from hec.script import *
-from hec.script import ClientAppWrapper
+# -*- coding: utf-8 -*-
 from hec.script import ResSim
 from hec.script import Constants
-# from hec.hecmath import Constants
-from hec.hecmath import *
-from hec.client import ClientApp
-from hec.heclib.util import HecTime
-from java.lang import String
-import jarray
-import shutil
+import os
 
 simName = "1986_260"
-altName = "HC86_260"
-watershedWkspFile = r"E:\J6R7HeadWater_SOU_Hindcast_Unreg_woDiversions_2022.08.26\J6R7HeadWater_SOU_Hindcast\J6R7HW_SOU_Hindcast.wksp"
-watershedDir = r"E:\J6R7HeadWater_SOU_Hindcast_Unreg_woDiversions_2022.08.26\J6R7HeadWater_SOU_Hindcast"
-# lookBackTime =  "29JUN2009,12:00"
-# forecastTime = "30JUN2009,12:00"
-# endTime = "05JUL2009,12:00"
-overridesDir = "null"
+altName = "HC_ALL"
+watershedWkspFile = r"C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast\J6R7HW_SOU_Hindcast.wksp"
+assert os.path.isfile(watershedWkspFile), 'watershed file does exist'
 
-#pad the alternative name with dashes to 10 characters
-altNamePadded = altName
-altNamePadded = altNamePadded.replace(' ', '$')
-altNamePadded = altNamePadded.ljust(10)
-altNamePadded = altNamePadded.replace(' ', '-')
-altNamePadded = altNamePadded.replace('$', ' ')
+#  Res Sim only likes unix-style path
+watershedWkspFile = watershedWkspFile.replace(os.sep, "/")
 
-# open the watershed
+
+watershedDir = r"C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast"
+
+# # open the watershed
 ResSim.openWatershed(watershedWkspFile)
-# to set the main application window visible
-# ClientApp.frame().setVisible(1)
-# select the simulation module
-ResSim.selectModule("Simulation")
-# get the simulation module
-simModule = ResSim.getCurrentModule()
-#if the simulation exists, delete it. does not remove its directory
-#if os.path.exists(watershedDir + "/rss/" + simName):
-# if simModule.simulationExists(simName):
-# 	simModule.deleteSimulation(simName)
+print '#===================================================='
+print 'ResSim Watershed Name:', ResSim.getWatershedName()
+print '#===================================================='
+if ResSim.getWatershedName() != 'J6R7HW_SOU_Hindcast' :
+    raise Exception("Unable to open watershed %s" % watershedWkspFile)
+ResSim.selectModule('Simulation')
 
-alts = jarray.array([altNamePadded], String)
-#create the simulation 1 hour time step
-# simulation = simModule.createSimulation(simName,"test simulation", lookBackTime, forecastTime, endTime, 1, HecTime.HOUR_INCREMENT, alts)
-#moves the overrides files into the new simulation
-# overrideName = altNamePadded + "0.dss"
-# if os.path.exists(overridesDir + "/" + overrideName):
-# 	shutil.copy(overridesDir + "/" + overrideName, watershedDir + "/rss/" + simName+ "/rss/" + overrideName)
 
-simRun = simModule.getSimulationRun(altName)
-simModule.computeRun(simRun, -1, Constants.TRUE, Constants.TRUE)
-#save the workspace
-ClientApp.Workspace().saveWorkspace()
+simMode = ResSim.getCurrentModule()
+simMode.resetWorkspace()  #<<<<---------------  WHAT WE NEEDED!!!
+print '#===================================================='
+print type(simMode)
+print simMode.getName()
+print '#===================================================='
+simMode.openSimulation(simName)
+simulation = simMode.getSimulation()
+simulation.setComputeAll(1)
+print '#===================================================='
+print type(simulation)
+print '#===================================================='
 
-ClientApp.frame().exitApplication()
+simRun = simulation.getSimulationRun(altName)
+print '#===================================================='
+print simRun.getName()
+print type(simRun)
+print '#===================================================='
+
+simMode.computeRun(simRun, -1, Constants.TRUE, Constants.TRUE)
+ResSim.getCurrentModule().saveSimulation()
+ResSim.closeWatershed()
