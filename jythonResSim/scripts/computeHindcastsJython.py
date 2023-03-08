@@ -114,10 +114,10 @@ def postPorcessHindcastSimulation(startDate, simulationDssFile, folsomInflowPath
 def buildInputPathnames(pattern, scaling, forecastDate):
     pathNames = []
     for bpart, cpart in SITES.items():
-
-        for year in range(1980,2021):
-            pathName = "/%s/%s/%s//1HOUR/C:00%s|%s/" % (scaling, bpart, cpart, year, forecastDate)
-            pathNames.append(pathName)
+        for dpart in ['01DEC2999','01JAN3000']:
+            for year in range(1980,2021):
+                pathName = "/%s/%s/%s/%s/1HOUR/C:00%s|%s/" % (scaling, bpart, cpart, dpart, year, forecastDate)
+                pathNames.append(pathName)
     pathNames = sorted(pathNames)
 
     return pathNames
@@ -177,49 +177,10 @@ def main(folsomInflowPathname, simulationDssFile, lookup, dataDir, watershedWksp
 if __name__ == '__main__':
 
     # This should come from the resSim simulations,
-    folsomInflowPathnames = [
-         '//FOLSOM/FLOW-IN//1HOUR/C:001980|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001981|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001982|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001983|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001984|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001985|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001986|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001987|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001988|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001989|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001990|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001991|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001992|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001993|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001994|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001995|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001996|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001997|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001998|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:001999|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002000|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002001|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002002|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002003|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002004|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002005|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002006|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002007|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002008|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002009|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002010|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002011|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002012|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002013|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002014|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002015|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002016|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002017|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002018|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002019|HC_ALL----0/',
-         '//FOLSOM/FLOW-IN//1HOUR/C:002020|HC_ALL----0/'
-    ]
+    folsomInflowPathnames = ['//FOLSOM/FLOW-IN/%s/1HOUR/C:00%s|HC_ALL----0/' % (dpart,ensembleYear) 
+                             for ensembleYear in range(1980,2021) 
+                             for dpart in  ['01DEC2999','01JAN3000']]
+    
     #This should be what the resSim alternative is looking to read from
     simulationDssFile = r'C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast\rss\1986_260\simulation.dss'
     watershedWkspFile = r"C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast\J6R7HW_SOU_Hindcast.wksp"
