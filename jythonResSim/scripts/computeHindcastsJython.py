@@ -4,7 +4,6 @@ from hec.heclib.dss import HecDss
 from hec.io import TimeSeriesContainer
 from hec.heclib.util import HecTime
 from hec.heclib.dss import HecDSSFileDataManager
-import json
 import os
 import sys
 
@@ -122,6 +121,74 @@ def buildInputPathnames(pattern, scaling, forecastDate):
 
     return pathNames
 
+def getStartDates(pattern):
+    return {
+        '1986': {
+            '1986020112': '23Dec2999 04:00',
+            '1986020212': '24Dec2999 04:00',
+            '1986020312': '25Dec2999 04:00',
+            '1986020412': '26Dec2999 04:00',
+            '1986020512': '27Dec2999 04:00',
+            '1986020612': '28Dec2999 04:00',
+            '1986020712': '29Dec2999 04:00',
+            '1986020812': '30Dec2999 04:00',
+            '1986020912': '31Dec2999 04:00',
+            '1986021012': '01Jan3000 04:00',
+            '1986021112': '02Jan3000 04:00',
+            '1986021212': '03Jan3000 04:00',
+            '1986021312': '04Jan3000 04:00',
+            '1986021412': '05Jan3000 04:00',
+            '1986021512': '06Jan3000 04:00',
+            '1986021612': '07Jan3000 04:00',
+            '1986021712': '08Jan3000 04:00',
+            '1986021812': '09Jan3000 04:00',
+            '1986021912': '10Jan3000 04:00',
+            '1986022012': '11Jan3000 04:00',
+            '1986022112': '12Jan3000 04:00',
+            '1986022212': '13Jan3000 04:00',
+            '1986022312': '14Jan3000 04:00',
+            '1986022412': '15Jan3000 04:00',
+            '1986022512': '16Jan3000 04:00',
+            '1986022612': '17Jan3000 04:00',
+            '1986022712': '18Jan3000 04:00',
+            '1986022812': '19Jan3000 04:00'
+        },
+        '1997': {
+            '1996121512': '23Dec2999 04:00',
+            '1996121612': '24Dec2999 04:00',
+            '1996121712': '25Dec2999 04:00',
+            '1996121812': '26Dec2999 04:00',
+            '1996121912': '27Dec2999 04:00',
+            '1996122012': '28Dec2999 04:00',
+            '1996122112': '29Dec2999 04:00',
+            '1996122212': '30Dec2999 04:00',
+            '1996122312': '31Dec2999 04:00',
+            '1996122412': '01Jan3000 04:00',
+            '1996122512': '02Jan3000 04:00',
+            '1996122612': '03Jan3000 04:00',
+            '1996122712': '04Jan3000 04:00',
+            '1996122812': '05Jan3000 04:00',
+            '1996122912': '06Jan3000 04:00',
+            '1996123012': '07Jan3000 04:00',
+            '1996123112': '08Jan3000 04:00',
+            '1997010112': '09Jan3000 04:00',
+            '1997010212': '10Jan3000 04:00',
+            '1997010312': '11Jan3000 04:00',
+            '1997010412': '12Jan3000 04:00',
+            '1997010512': '13Jan3000 04:00',
+            '1997010612': '14Jan3000 04:00',
+            '1997010712': '15Jan3000 04:00',
+            '1997010812': '16Jan3000 04:00',
+            '1997010912': '17Jan3000 04:00',
+            '1997011012': '18Jan3000 04:00',
+            '1997011112': '19Jan3000 04:00',
+            '1997011212': '20Jan3000 04:00',
+            '1997011312': '21Jan3000 04:00',
+            '1997011412': '22Jan3000 04:00',
+            '1997011512': '23Jan3000 04:00'
+        }
+    }[pattern]
+
 def configureResSim(watershedWkspFile, simName, altName):
 
     #  Res Sim only likes unix-style path
@@ -129,31 +196,35 @@ def configureResSim(watershedWkspFile, simName, altName):
     ResSim.openWatershed(watershedWkspFile)
     ResSim.selectModule('Simulation')
     simMode = ResSim.getCurrentModule()
+    # Not sure what this does, but this is the only way to open a simulation
     simMode.resetWorkspace()
     simMode.openSimulation(simName)
     simulation = simMode.getSimulation()
+    # force compute everything
     simulation.setComputeAll(1)
     simRun = simulation.getSimulationRun(altName)
     return simMode, simRun
 
-def main(folsomInflowPathname, simulationDssFile, lookup, dataDir, watershedWkspFile, simName, altName ):
+def main(folsomInflowPathnames, simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altName ):
     
     simMode, simRun = configureResSim(watershedWkspFile, simName, altName)
     
-    for pattern in lookup.keys():
-        scalings = lookup[pattern]
+    for pattern in patterns:
+
         resultsDssFile = r'%s/%s_results.dss' %(dataDir, pattern)
         if not os.path.exists(resultsDssFile):
             fid = HecDss.open(resultsDssFile, 6)
             fid.done()
-        for scaling in scalings.keys():
-            forecastDates = scalings[scaling]
+
+        for scaling in [str(x) for x in range(200, 510, 10)]:
+
             i = 0
-            for forecastDate in forecastDates.keys():
-                startDate = forecastDates[forecastDate]['startDate']
+
+            for forecastDate, startDate in getStartDates(pattern).items():
+
                 pathNames = buildInputPathnames(pattern, scaling, forecastDate)
                 inputDssFile = r'%s/%s/%s_%s.dss' % (dataDir, pattern, pattern,scaling)
-                assert os.path.exists(inputDssFile)
+                assert os.path.exists(inputDssFile), "input DSS file does not exist:" + inputDssFile
 
                 # Run Extract on data
                 newPathNames = preProcessHindcastForSimulation(inputDssFile, pathNames, simulationDssFile)
@@ -162,7 +233,7 @@ def main(folsomInflowPathname, simulationDssFile, lookup, dataDir, watershedWksp
                 ResSim.getCurrentModule().saveSimulation()
                 
                 # Post Process Results
-                postPorcessHindcastSimulation(startDate, simulationDssFile, folsomInflowPathname, forecastDate, scaling, resultsDssFile)
+                postPorcessHindcastSimulation(startDate, simulationDssFile, folsomInflowPathnames, forecastDate, scaling, resultsDssFile)
                 
                 i += 1
                 if i == 2:
@@ -186,6 +257,6 @@ if __name__ == '__main__':
     watershedWkspFile = r"C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast\J6R7HW_SOU_Hindcast.wksp"
     simName = "1986_260"
     altName = "HC_ALL"
-    lookup = json.load(open(r"C:\workspace\git_clones\folsom-hindcast-processing\outputNoShift3\resSimLookupNoPath.json"))
     dataDir = r'C:\workspace\git_clones\folsom-hindcast-processing\outputNoShift3'
-    main(folsomInflowPathnames, simulationDssFile, lookup, dataDir, watershedWkspFile, simName, altName)
+    patterns = ['1986','1997']
+    main(folsomInflowPathnames, simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altName)
