@@ -46,7 +46,7 @@ def main():
     for pattern in patterns:
 
         patternYear = pattern.split('\\')[-1].split('_')[0]
-        outDss = fr'{outDir}\{patternYear}_output_determinstic.dss'
+        outDss = fr'{outDir}\{patternYear}_output_determinstic_v2.dss'
         determiniticFiles = glob(f'{pattern}\*\*export.csv')
 
         for determiniticFile in determiniticFiles:
@@ -61,8 +61,9 @@ def main():
                 parse_dates=True
             )
 
-            df = df.loc[:, df.columns.get_level_values(1) == 'SQIN']
+            df = df.loc[:, df.columns.get_level_values(1).str.contains('SQIN')]
             df = df.loc[:, df.columns.get_level_values(0).isin(sites.keys())]
+            df = df.groupby(level=0, axis=1).max()
 
             df.index = df.index.tz_localize('UTC').tz_convert('US/Pacific')
             df.index = pd.DatetimeIndex(
@@ -70,7 +71,6 @@ def main():
                 name='date'
             )
 
-            df.columns = list(df.columns.droplevel(1))
             df[df>-500] = df[df>0]*1000
             df[df<-500] = -901.0
 
