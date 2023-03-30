@@ -32,21 +32,23 @@ sites = {
     'CBAC1F': 'FLOW-NAT',
     'MFPC1F': 'FLOW-NAT',
     'RUFC1F': 'FLOW-NAT',
-    'SPYC1':'FLOW'
+    'SPYC1':'FLOW',
+    'FMDC1I':'FLOW-LOC',
+    'UNVC1I':'FLOW-LOC'
 }
+
 def main():
 
     
     outDir = r'outputDeterminstic'
     os.makedirs(outDir, exist_ok=True)
-    
 
     patterns = glob(r'data\*')
 
     for pattern in patterns:
 
         patternYear = pattern.split('\\')[-1].split('_')[0]
-        outDss = fr'{outDir}\{patternYear}_output_determinstic_v2.dss'
+        outDss = fr'{outDir}\{patternYear}_output_determinstic_v3.dss'
         determiniticFiles = glob(f'{pattern}\*\*export.csv')
 
         for determiniticFile in determiniticFiles:
