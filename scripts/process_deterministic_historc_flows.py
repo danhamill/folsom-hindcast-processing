@@ -48,7 +48,7 @@ def main():
     for pattern in patterns:
 
         patternYear = pattern.split('\\')[-1].split('_')[0]
-        outDss = fr'{outDir}\{patternYear}_output_determinstic_v3.dss'
+        outDss = fr'{outDir}\{patternYear}_output_determinstic_v4.dss'
         determiniticFiles = glob(f'{pattern}\*\*export.csv')
 
         for determiniticFile in determiniticFiles:
