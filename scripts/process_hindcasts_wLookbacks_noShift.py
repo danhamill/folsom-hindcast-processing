@@ -156,20 +156,19 @@ def main(ensembleStartYear):
                 )
 
                 data[[idxAppend]] = np.nan
-
                 data = data.fillna(0.0)
 
                 data.columns.names = ['site','tsType', 'year', 'fileDate']
 
-                # get lookback time series using UTC dates
+                # Convert UTC to Pacific
+                data = convertUtcToPacific(data)
+
+                # get lookback time series using US/Pacific dates
                 lookbackWindow = [i.strftime('%d%b%Y %H:%M')
                                              for i in [data.index.min()-pd.Timedelta(hours=24), data.index.min()]]
                 lookback = getLookbacks(lookbackWindow, patternYear, returnInterval, fileDates)
 
-                # Convert UTC to Pacific
-                data = convertUtcToPacific(data)
-                lookback = convertUtcToPacific(lookback)
-
+                print('Currently writing ensembles to dss...') 
                 # Process ensemble hefs to dss
                 data = data.stack(level=[0,1,2,3])
                 data.index.names = ['date','site','tsType','year', 'fileDate']
@@ -178,7 +177,7 @@ def main(ensembleStartYear):
 
                 grouped = data.groupby(['site', 'year'])
 
-                print('Currently writing ensembles to dss...')          
+                         
                 
                 pathNames = []
                 for (site, year), group in grouped:
