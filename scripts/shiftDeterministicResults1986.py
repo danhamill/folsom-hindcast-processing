@@ -6,10 +6,16 @@ import numpy as np
 from pydsstools.heclib.dss import HecDss
 from pydsstools.core import TimeSeriesContainer
 
+def readCatalog(dssFile: str) -> list:
+    """
+    Function to return condensed DSS catalog for all records
 
+    Args:
+        dssFile (str): file path to dss file
 
-def readCatalog(dssFile):
-
+    Returns:
+        list: condensed dss catalog
+    """
     with HecDss.Open(dssFile) as fid:
         plist = fid.getPathnameList('/*/*/*/*/*/*/')
 
@@ -42,7 +48,7 @@ for dssFile in dssFiles:
 
         tsc = TimeSeriesContainer()
         tsc.pathname = pname
-        tsc.startDateTime = '21Jan1986 04:00'
+        tsc.startDateTime = '21Jan1986 04:00' # <- this is in US/Pacific
         tsc.numberValues = ts.numberValues
         tsc.interval = ts.interval
         tsc.units = ts.units
