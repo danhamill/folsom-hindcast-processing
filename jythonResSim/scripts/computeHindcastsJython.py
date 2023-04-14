@@ -7,6 +7,7 @@ from hec.hecmath import TimeSeriesMath
 from hec.heclib.dss import HecDSSFileDataManager
 import os
 import sys
+import logging
 
 SITES = sites = {
     'FOLC1L': 'FLOW-LOC',
@@ -158,7 +159,11 @@ def getOldTimeSeriesContainers(pathNames, simulationDssFile):
 def writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling):
     oldTimeSeriesContiners =  getOldTimeSeriesContainers(pathNames, simulationDssFile)
 
-    mergeTsc = mergeTwoTimeSeriesContainers(oldTimeSeriesContiners)
+    if len(oldTimeSeriesContiners) == 1:
+        mergeTsc = oldTimeSeriesContiners[0].clone()
+    else:
+        mergeTsc = mergeTwoTimeSeriesContainers(oldTimeSeriesContiners)
+
     firstTsc = oldTimeSeriesContiners[0]
     tmpTs = shiftSimulationBackToNormalDate(mergeTsc, targetTime, firstTsc)
 
@@ -327,18 +332,24 @@ def configureResSim(watershedWkspFile, simName, altName):
 def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altName ):
     
     simMode, simRun = configureResSim(watershedWkspFile, simName, altName)
-    
-    for pattern in patterns:
 
+
+
+    for pattern in patterns:
+        
+        loggingFile = r'%s/%s_results.log' %(dataDir, pattern)
+        logging.basicConfig(filename=loggingFile, level=logging.INFO, format='%(asctime)s %(message)s')
+        logging.info('Processing pattern %s...' %(pattern))
+        
         resultsDssFile = r'%s/%s_results.dss' %(dataDir, pattern)
         if not os.path.exists(resultsDssFile):
             fid = HecDss.open(resultsDssFile, 6)
             fid.done()
-
+        logging.info('Results are stroed in  %s' %(resultsDssFile))
         for scaling in [str(x) for x in range(200, 510, 10)][10:11]:
-
+            logging.info('Processing %s scale factor....'  %(scaling))
             for forecastDate, startDate in getStartDates(pattern).items():
-
+                logging.info('Processing forecast date %s....'  % (forecastDate))
                 inputDssFile = r'%s/%s/%s_%s.dss' % (dataDir, pattern, pattern,scaling)
                 assert os.path.exists(inputDssFile), "input DSS file does not exist:" + inputDssFile
                 _ = runExtract(pattern, scaling, forecastDate, inputDssFile, simulationDssFile)
