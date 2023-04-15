@@ -220,6 +220,7 @@ def postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, sc
 def runExtract(pattern, scaling, forecastDate, inputDssFile, simulatioinDssFile):
 
     if pattern == '1986':
+        blockLookback = '01JAN%s' %{pattern}
         blockStart = '01FEB%s' %(pattern)
         blockEnd = '01MAR%s' %(pattern)
 
@@ -236,7 +237,7 @@ def runExtract(pattern, scaling, forecastDate, inputDssFile, simulatioinDssFile)
     for bpart, cpart in LOOKBACKSITES.items():
         for year in range(1980,2021):
             pathNames = []
-            for dpart in [blockStart, blockEnd]:
+            for dpart in [blockLookback, blockStart, blockEnd]:
                 pathName = "/%s/%s/%s/%s/1HOUR/C:00%s|%s/" % (scaling, bpart, cpart, dpart, year, forecastDate)
                 pathNames.append(pathName)
             newPath = formatSimulationTimeSeries(inputDssFile, pathNames, simulatioinDssFile)
@@ -329,27 +330,37 @@ def configureResSim(watershedWkspFile, simName, altName):
     simRun = simulation.getSimulationRun(altName)
     return simMode, simRun
 
+def myLogger(name, path):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    handler = logging.FileHandler(path, 'a')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
+
 def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altName ):
     
     simMode, simRun = configureResSim(watershedWkspFile, simName, altName)
 
-
-
     for pattern in patterns:
         
         loggingFile = r'%s/%s_results.log' %(dataDir, pattern)
-        logging.basicConfig(filename=loggingFile, level=logging.INFO, format='%(asctime)s %(message)s')
-        logging.info('Processing pattern %s...' %(pattern))
+        logger = myLogger("main", loggingFile)
         
         resultsDssFile = r'%s/%s_results.dss' %(dataDir, pattern)
         if not os.path.exists(resultsDssFile):
             fid = HecDss.open(resultsDssFile, 6)
             fid.done()
-        logging.info('Results are stroed in  %s' %(resultsDssFile))
+
+        logger.info('Results are stroed in  %s' %(resultsDssFile))
+        
         for scaling in [str(x) for x in range(200, 510, 10)][10:11]:
-            logging.info('Processing %s scale factor....'  %(scaling))
+            logger.info('Processing %s scale factor....'  %(scaling))
+            
             for forecastDate, startDate in getStartDates(pattern).items():
-                logging.info('Processing forecast date %s....'  % (forecastDate))
+
+                logger.info('Processing forecast date %s....'  % (forecastDate))
                 inputDssFile = r'%s/%s/%s_%s.dss' % (dataDir, pattern, pattern,scaling)
                 assert os.path.exists(inputDssFile), "input DSS file does not exist:" + inputDssFile
                 _ = runExtract(pattern, scaling, forecastDate, inputDssFile, simulationDssFile)
@@ -374,7 +385,7 @@ if __name__ == '__main__':
     watershedWkspFile = r"C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast_2023.04.05\J6R7HW_SOU_Hindcast.wksp"
     simName = "2023.04.14-0900"
     altName = "HC_Ensembl"
-    dataDir = r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate'
+    dataDir = r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate2'
     patterns = ['1986','1997'][:1]
     main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altName)
 
