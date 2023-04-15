@@ -114,18 +114,22 @@ def shiftNormalDatesToSimulation(mergeTsc, oldTs, targetTime):
     tmpTs = newTsm.getContainer()
     return tmpTs
 def mergeTwoTimeSeriesContainers(oldTimeSeriesContiners):
+    newTimeList = []
+    newValueList = []
+
 
     timeList1 = list(oldTimeSeriesContiners[0].times)
-    timeList2 = list(oldTimeSeriesContiners[1].times)
-    newTimeList = []
     newTimeList.extend(timeList1)
-    newTimeList.extend(timeList2)
-
     valuesList1 =list(oldTimeSeriesContiners[0].values)
-    valuesList2 =list(oldTimeSeriesContiners[1].values)
-    newValueList = []
     newValueList.extend(valuesList1)
-    newValueList.extend(valuesList2)
+
+    if oldTimeSeriesContiners[1].times is not None:
+        timeList2 = list(oldTimeSeriesContiners[1].times)
+        newTimeList.extend(timeList2)
+        valuesList2 = list(oldTimeSeriesContiners[1].values)
+        newValueList.extend(valuesList2)
+
+
     mergeTsc = TimeSeriesContainer()
     mergeTsc.values = newValueList
     mergeTsc.times = newTimeList
@@ -157,7 +161,11 @@ def getOldTimeSeriesContainers(pathNames, simulationDssFile):
 def writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling):
     oldTimeSeriesContiners =  getOldTimeSeriesContainers(pathNames, simulationDssFile)
 
-    mergeTsc = mergeTwoTimeSeriesContainers(oldTimeSeriesContiners)
+    if len(oldTimeSeriesContiners) == 1:
+        mergeTsc = oldTimeSeriesContiners[0].clone()
+    else:
+        mergeTsc = mergeTwoTimeSeriesContainers(oldTimeSeriesContiners)
+
     firstTsc = oldTimeSeriesContiners[0]
     tmpTs = shiftSimulationBackToNormalDate(mergeTsc, targetTime, firstTsc)
 
@@ -328,11 +336,11 @@ def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altNa
             #     ResSim.getCurrentModule().saveSimulation()
             #
             #     # Post Process Results
-                postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, scaling, resultsDssFile)
-                print 'here'
-                break
+            #     postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, scaling, resultsDssFile)
+            #     print 'here'
+
             #     HecDSSFileDataManager().closeAllFiles()
-            #     os.remove(simulationDssFile)
+                os.system("del %s" %(simulationDssFile))
             #
             # HecDSSFileDataManager().closeAllFiles()
             # ResSim.closeWatershed()
@@ -346,6 +354,6 @@ if __name__ == '__main__':
     watershedWkspFile = r"C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast_2023.04.05\J6R7HW_SOU_Hindcast.wksp"
     simName = "2023.04.14-0900"
     altName = "HC_Ensembl"
-    dataDir = r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate'
+    dataDir = r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate2'
     patterns = ['1986','1997'][:1]
     main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altName)
