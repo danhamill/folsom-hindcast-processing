@@ -45,7 +45,7 @@ def getLookbacks(lookbackWindow: list[str], patternYear: str,
         pd.Dataframe: An ensemble-like datafame with lookback time series
     """
 
-    lookbackDSssFile =rf'lookbackData\{patternYear}\D{returnInterval}_simulation_normalDate.dss'
+    lookbackDSssFile =rf'lookbackData\{patternYear}\D{returnInterval}_simulation.dss'
     assert os.path.exists(lookbackDSssFile), 'Cannot find lookback file:'
     
     output = pd.DataFrame()
@@ -77,7 +77,7 @@ def getLookbacks(lookbackWindow: list[str], patternYear: str,
     gc.collect()
     return output
 
-def main(ensembleStartYear):
+def main(ensembleStartYear, outDir):
 
     patterns = glob(r'data\*')
     lookup = {}
@@ -87,7 +87,7 @@ def main(ensembleStartYear):
 
         scalings = glob(f'{pattern}\*')
         eventScaling = scalings[0]
-        scalings = scalings[11:]
+        scalings = scalings[11:12]
 
         lookup[patternYear] = {}
         for scaling in scalings:
@@ -95,7 +95,7 @@ def main(ensembleStartYear):
             returnInterval = scaling.split('\\')[-1]
             lookup[patternYear][returnInterval] = {}
 
-            outDir = rf'outputNormalDate\{patternYear}'
+            outDir = rf'{outDir}\{patternYear}'
             os.makedirs(outDir, exist_ok=True)
             dssOut = rf'{outDir}\{patternYear}_{returnInterval}.dss'
             print(f'Currently Processing {dssOut}...')
@@ -165,7 +165,7 @@ def main(ensembleStartYear):
 
                 # get lookback time series using US/Pacific dates
                 lookbackWindow = [i.strftime('%d%b%Y %H:%M')
-                                             for i in [data.index.min()-pd.Timedelta(hours=24), data.index.min()]]
+                                             for i in [data.index.min(), data.index.min()+pd.Timedelta(hours=24)]]
                 lookback = getLookbacks(lookbackWindow, patternYear, returnInterval, fileDates)
 
                 print('Currently writing ensembles to dss...') 
@@ -291,8 +291,8 @@ def main(ensembleStartYear):
         json.dump(lookup, f, ensure_ascii=False, indent=3)
 
 if __name__ == '__main__':
-
+    outDir = rf'outputNormalDate3'
     ensembleStartYear = 1980
-    main(ensembleStartYear)
+    main(ensembleStartYear, outDir)
 
     # \\spk-netapp2\Hydrology\Studies\SAC-013\Folsom Dam Raise_SOU\2 Data Transfers\Incoming\Agencies\CNRFC\HindCast_Robustness\20221127 MI Scaled Hindcasts 1986 and 1997\forReview
