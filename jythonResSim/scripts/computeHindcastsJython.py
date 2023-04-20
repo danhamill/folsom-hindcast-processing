@@ -140,7 +140,7 @@ def mergeTwoTimeSeriesContainers(oldTimeSeriesContiners):
 def shiftSimulationBackToNormalDate(mergeTsc, targetTime, firstTsc):
     oldTsm = TimeSeriesMath(mergeTsc)
     daysToShift = targetTime.dayOfYear() + (365-firstTsc.startHecTime.dayOfYear())
-    newTsm = oldTsm.shiftInTime('-'+str(firstTsc.startHecTime.year() - targetTime.year() )+"Y").shiftInTime(str(daysToShift)+'D')
+    newTsm = oldTsm.shiftInTime('-'+str(firstTsc.startHecTime.year() - targetTime.year()+1 )+"Y").shiftInTime(str(daysToShift)+'D')
     tmpTs = newTsm.getContainer()
 
     return tmpTs
@@ -364,7 +364,7 @@ def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altNa
                 inputDssFile = r'%s/%s/%s_%s.dss' % (dataDir, pattern, pattern,scaling)
                 assert os.path.exists(inputDssFile), "input DSS file does not exist:" + inputDssFile
                 _ = runExtract(pattern, scaling, forecastDate, inputDssFile, simulationDssFile)
-
+                
                 simMode.computeRun(simRun, -1, Constants.TRUE, Constants.TRUE)
                 ResSim.getCurrentModule().saveSimulation()
 
@@ -385,7 +385,7 @@ if __name__ == '__main__':
     watershedWkspFile = r"C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast_2023.04.05\J6R7HW_SOU_Hindcast.wksp"
     simName = "2023.04.14-0900"
     altName = "HC_Ensembl"
-    dataDir = r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate2'
+    dataDir = r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate3'
     patterns = ['1986','1997'][:1]
     main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altName)
 
