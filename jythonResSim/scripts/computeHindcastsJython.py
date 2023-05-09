@@ -8,6 +8,7 @@ from hec.heclib.dss import HecDSSFileDataManager
 import os
 import sys
 import logging
+import datetime
 
 SITES = sites = {
     'FOLC1L': 'FLOW-LOC',
@@ -57,7 +58,12 @@ LOOKBACKSITES = {
         'FRENCH MEADOWS-GATED SPILLWAY': 'FLOW'
     }
 
-def formatSimulationTimeSeries(inputDssFile, oldPathNames, simulationDssFile):
+def convertHecTimeToDatetime(hecTime):
+
+    date = datetime.datetime.strptime(hecTime.toString(), '%d %B %Y, %H:%M')
+    return date
+
+def formatSimulationTimeSeries(inputDssFile, oldPathNames, simulationDssFile, pattern):
     """
     Function to reformate DSS paths and write to a simulation file that will be used
     in a headless HEC-ResSim ensemble compute.
@@ -84,7 +90,7 @@ def formatSimulationTimeSeries(inputDssFile, oldPathNames, simulationDssFile):
     oldTs = oldTimeSeriesContiners[0]
 
     # Shift times to simulation time
-    tmpTs = shiftNormalDatesToSimulation(mergeTsc, oldTs, targetTime)
+    tmpTs = shiftNormalDatesToSimulation(mergeTsc, oldTs, targetTime, pattern)
 
     writeSimulationTimeSeries(newPathName, tmpTs, simulationDssFile)
 
@@ -106,11 +112,20 @@ def writeSimulationTimeSeries(newPathName, tmpTs, simulationDssFile):
     outDss.put(newTs)
     outDss.done()
 
-def shiftNormalDatesToSimulation(mergeTsc, oldTs, targetTime):
+def shiftNormalDatesToSimulation(mergeTsc, oldTs, targetTime, pattern):
+    
+    # Calculate time delta between simulation and normal date
+    targetPyTime = convertHecTimeToDatetime(targetTime)
+    inputPyTime = convertHecTimeToDatetime(oldTs.startHecTime)
+    delta = targetPyTime - inputPyTime
     oldTsm = TimeSeriesMath(mergeTsc)
-    daysToShift = oldTs.startHecTime.dayOfYear() + (365-targetTime.dayOfYear())
-    newTsm = oldTsm.shiftInTime(str(3000 - oldTs.startHecTime.year() )+"Y").shiftInTime('-'+str(daysToShift)+'D')
+
+    # Shift the time series to simulation date
+    newTsm = oldTsm.shiftInTime(str(delta.days)+'D')
     tmpTs = newTsm.getContainer()
+
+    assert targetTime.equalTo(tmpTs.startHecTime), '%s not being shifted correctly, should be %s but is %s' %(pattern, targetTime, tmpTs.startHecTime)
+
     return tmpTs
 
 def mergeTwoTimeSeriesContainers(oldTimeSeriesContiners):
@@ -136,12 +151,19 @@ def mergeTwoTimeSeriesContainers(oldTimeSeriesContiners):
     mergeTsc.startTime = oldTimeSeriesContiners[0].startTime
 
     return mergeTsc
-
-def shiftSimulationBackToNormalDate(mergeTsc, targetTime, firstTsc):
+def shiftSimulationBackToNormalDate(mergeTsc, targetTime, firstTsc, pattern):
+    
+    # Calculate the time delta between normal date and simulation dates
+    targetPyTime = convertHecTimeToDatetime(targetTime)
+    inputPyTime = convertHecTimeToDatetime(firstTsc.startHecTime)
+    delta = targetPyTime - inputPyTime
     oldTsm = TimeSeriesMath(mergeTsc)
-    daysToShift = targetTime.dayOfYear() + (365-firstTsc.startHecTime.dayOfYear())
-    newTsm = oldTsm.shiftInTime('-'+str(firstTsc.startHecTime.year() - targetTime.year()+1 )+"Y").shiftInTime(str(daysToShift)+'D')
+
+    # Shift the time series to the normal date
+    newTsm = oldTsm.shiftInTime(str(delta.days)+'D')
     tmpTs = newTsm.getContainer()
+
+    assert targetTime.equalTo(tmpTs.startHecTime), '%s not being shifted correctly, should be %s but is %s' %(pattern, targetTime, tmpTs.startHecTime)
 
     return tmpTs
 
@@ -156,7 +178,7 @@ def getOldTimeSeriesContainers(pathNames, simulationDssFile):
         simDss.done()
     return oldTimeSeriesContiners
 
-def writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling):
+def writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling, pattern):
     oldTimeSeriesContiners =  getOldTimeSeriesContainers(pathNames, simulationDssFile)
 
     if len(oldTimeSeriesContiners) == 1:
@@ -165,7 +187,7 @@ def writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, 
         mergeTsc = mergeTwoTimeSeriesContainers(oldTimeSeriesContiners)
 
     firstTsc = oldTimeSeriesContiners[0]
-    tmpTs = shiftSimulationBackToNormalDate(mergeTsc, targetTime, firstTsc)
+    tmpTs = shiftSimulationBackToNormalDate(mergeTsc, targetTime, firstTsc, pattern)
 
     parts = firstTsc.fullName.split('/')
     parts[1] = scaling
@@ -188,59 +210,106 @@ def writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, 
     results.put(newTs)
     results.done()
 
-def postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, scaling, resultsDssFile):
+def writeDeterminsticTimeSereisToResults(pathNames, inputDssFile, resultsDssFile):
+
+    oldTimeSeriesContiners =  getOldTimeSeriesContainers(pathNames, inputDssFile)
+
+    if len(oldTimeSeriesContiners) == 1:
+        mergeTsc = oldTimeSeriesContiners[0].clone()
+    else:
+        mergeTsc = mergeTwoTimeSeriesContainers(oldTimeSeriesContiners)
+
+    parts = oldTimeSeriesContiners[0].fullName.split('/')
+    parts[4] = ''
+    newPathName = '/'.join(parts)
+
+    newTs = TimeSeriesContainer()
+    newTs.version = newPathName.split('/')[-2]
+    newTs.fullName = newPathName
+    newTs.timeGranularitySeconds = mergeTsc.timeGranularitySeconds
+    newTs.type = mergeTsc.type
+    newTs.units = mergeTsc.units
+    newTs.interval = mergeTsc.interval
+    newTs.numberValues = mergeTsc.numberValues
+    newTs.times = mergeTsc.times
+    newTs.values = mergeTsc.values
+
+    results = HecDss.open(resultsDssFile)
+    results.put(newTs)
+    results.done()
+
+def postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, scaling, resultsDssFile, inputDssFile, pattern):
 
     targetTime = HecTime(startDate)
-
+    simulationDParts = ['01DEC2999','01JAN3000']
     # Folsom Flow In
     for year in range(1980,2021):
         pathNames = []
-        for dpart in ['01DEC2999','01JAN3000']:
+        for dpart in simulationDParts:
             pathName = "//FOLSOM/FLOW-IN/%s/1HOUR/C:00%s|HC_ENSEMBL0/" % (dpart, year)
             pathNames.append(pathName)
-        writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling)
+        writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling, pattern)
 
     # Fair Oaks Flow Unreg
     for year in range(1980,2021):
         pathNames = []
-        for dpart in ['01DEC2999','01JAN3000']:
+        for dpart in simulationDParts:
             pathName = "//FAIR OAKS/FLOW-UNREG/%s/1HOUR/C:00%s|HC_ENSEMBL0/" % (dpart, year)
             pathNames.append(pathName)
-        writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling)
+        writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling, pattern)
 
     #lookbacks
     for bpart, cpart in LOOKBACKSITES.items():
         for year in range(1980,2021):
             pathNames = []
-            for dpart in ['01DEC2999','01JAN3000']:
+            for dpart in simulationDParts:
                 pathName = "//%s/%s/%s/1HOUR/C:00%s|HC_ENSEMBL0/" % (bpart, cpart,dpart, year)
                 pathNames.append(pathName)
-            writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling)
+            writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling, pattern)
 
-def runExtract(pattern, scaling, forecastDate, inputDssFile, simulatioinDssFile):
+    if pattern == '1997':
+        dparts = ['01DEC1996', '01JAN1997']
+    elif pattern == '1986':
+        dparts = ['01FEB1986', '01MAR1986']
+    #Determistic data to compare against
+    pathNames = []
+    for dpart in dparts:
+        pathName = '/%s/FOLC1F/FLOW-NAT/%s/1HOUR//' %(scaling, dpart)
+        pathNames.append(pathName)
+    writeDeterminsticTimeSereisToResults(pathNames, inputDssFile, resultsDssFile)
+
+def runExtract(pattern, scaling, forecastDate, inputDssFile, simulationDssFile):
 
     if pattern == '1986':
         blockLookback = '01JAN%s' %{pattern}
         blockStart = '01FEB%s' %(pattern)
         blockEnd = '01MAR%s' %(pattern)
 
+        dPartsLookback = [blockLookback, blockStart, blockEnd]
+        dPartsOther = [ blockStart, blockEnd]
+    else:
+        blockEnd = '01JAN%s'  %(pattern)
+        blockStart = '01DEC%s'%(pattern[:-1]+'6')
+        dPartsLookback = [blockStart, blockEnd]
+        dPartsOther = [blockStart, blockEnd]
+
     newPathNames = []
     for bpart, cpart in SITES.items():
         for year in range(1980,2021):
             pathNames = []
-            for dpart in [blockStart, blockEnd]:
+            for dpart in dPartsOther:
                 pathName = "/%s/%s/%s/%s/1HOUR/C:00%s|%s/" % (scaling, bpart, cpart, dpart, year, forecastDate)
                 pathNames.append(pathName)
-            newPath = formatSimulationTimeSeries(inputDssFile, pathNames, simulatioinDssFile)
+            newPath = formatSimulationTimeSeries(inputDssFile, pathNames, simulationDssFile, pattern)
             newPathNames.append(newPath)
 
     for bpart, cpart in LOOKBACKSITES.items():
         for year in range(1980,2021):
             pathNames = []
-            for dpart in [blockLookback, blockStart, blockEnd]:
+            for dpart in dPartsLookback:
                 pathName = "/%s/%s/%s/%s/1HOUR/C:00%s|%s/" % (scaling, bpart, cpart, dpart, year, forecastDate)
                 pathNames.append(pathName)
-            newPath = formatSimulationTimeSeries(inputDssFile, pathNames, simulatioinDssFile)
+            newPath = formatSimulationTimeSeries(inputDssFile, pathNames, simulationDssFile, pattern)
             newPathNames.append(newPath)
     pathNames = sorted(newPathNames)
 
@@ -279,38 +348,38 @@ def getStartDates(pattern):
             '1986022812': '28Feb1986 04:00'
         },
         '1997': {
-            '1996121512': '23Dec2999 04:00',
-            '1996121612': '24Dec2999 04:00',
-            '1996121712': '25Dec2999 04:00',
-            '1996121812': '26Dec2999 04:00',
-            '1996121912': '27Dec2999 04:00',
-            '1996122012': '28Dec2999 04:00',
-            '1996122112': '29Dec2999 04:00',
-            '1996122212': '30Dec2999 04:00',
-            '1996122312': '31Dec2999 04:00',
-            '1996122412': '01Jan3000 04:00',
-            '1996122512': '02Jan3000 04:00',
-            '1996122612': '03Jan3000 04:00',
-            '1996122712': '04Jan3000 04:00',
-            '1996122812': '05Jan3000 04:00',
-            '1996122912': '06Jan3000 04:00',
-            '1996123012': '07Jan3000 04:00',
-            '1996123112': '08Jan3000 04:00',
-            '1997010112': '09Jan3000 04:00',
-            '1997010212': '10Jan3000 04:00',
-            '1997010312': '11Jan3000 04:00',
-            '1997010412': '12Jan3000 04:00',
-            '1997010512': '13Jan3000 04:00',
-            '1997010612': '14Jan3000 04:00',
-            '1997010712': '15Jan3000 04:00',
-            '1997010812': '16Jan3000 04:00',
-            '1997010912': '17Jan3000 04:00',
-            '1997011012': '18Jan3000 04:00',
-            '1997011112': '19Jan3000 04:00',
-            '1997011212': '20Jan3000 04:00',
-            '1997011312': '21Jan3000 04:00',
-            '1997011412': '22Jan3000 04:00',
-            '1997011512': '23Jan3000 04:00'
+            '1996121512': '15Dec1996 04:00',
+            '1996121612': '16Dec1996 04:00',
+            '1996121712': '17Dec1996 04:00',
+            '1996121812': '18Dec1996 04:00',
+            '1996121912': '19Dec1996 04:00',
+            '1996122012': '20Dec1996 04:00',
+            '1996122112': '21Dec1996 04:00',
+            '1996122212': '22Dec1996 04:00',
+            '1996122312': '23Dec1996 04:00',
+            '1996122412': '24Dec1996 04:00',
+            '1996122512': '25Dec1996 04:00',
+            '1996122612': '26Dec1996 04:00',
+            '1996122712': '27Dec1996 04:00',
+            '1996122812': '28Dec1996 04:00',
+            '1996122912': '29Dec1996 04:00',
+            '1996123012': '30Dec1996 04:00',
+            '1996123112': '31Dec1996 04:00',
+            '1997010112': '01Jan1997 04:00',
+            '1997010212': '02Jan1997 04:00',
+            '1997010312': '03Jan1997 04:00',
+            '1997010412': '04Jan1997 04:00',
+            '1997010512': '05Jan1997 04:00',
+            '1997010612': '06Jan1997 04:00',
+            '1997010712': '07Jan1997 04:00',
+            '1997010812': '08Jan1997 04:00',
+            '1997010912': '09Jan1997 04:00',
+            '1997011012': '10Jan1997 04:00',
+            '1997011112': '11Jan1997 04:00',
+            '1997011212': '12Jan1997 04:00',
+            '1997011312': '13Jan1997 04:00',
+            '1997011412': '14Jan1997 04:00',
+            '1997011512': '15Jan1997 04:00'
         }
     }[pattern]
 
@@ -346,21 +415,23 @@ def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altNa
     for pattern in patterns:
         
         loggingFile = r'%s/%s_results.log' %(dataDir, pattern)
-        logger = myLogger("main", loggingFile)
+        loggerMain = myLogger("main", loggingFile)
         
         resultsDssFile = r'%s/%s_results.dss' %(dataDir, pattern)
         if not os.path.exists(resultsDssFile):
             fid = HecDss.open(resultsDssFile, 6)
             fid.done()
 
-        logger.info('Results are stroed in  %s' %(resultsDssFile))
+        loggerMain.info('Results are stroed in  %s' %(resultsDssFile))
         
-        for scaling in [str(x) for x in range(200, 510, 10)][10:11]:
-            logger.info('Processing %s scale factor....'  %(scaling))
+        for scaling in [str(x) for x in range(200, 510, 10)][:1]:
+
+            loggerScaling = myLogger("scaling: %s" %(scaling), loggingFile)
+            loggerScaling.info('Processing %s scale factor....'  %(scaling))
             
             for forecastDate, startDate in getStartDates(pattern).items():
-
-                logger.info('Processing forecast date %s....'  % (forecastDate))
+                loggerForecast = myLogger("forecast: %s" %(forecastDate), loggingFile)
+                loggerForecast.info('Processing forecast date %s....'  % (forecastDate))
                 inputDssFile = r'%s/%s/%s_%s.dss' % (dataDir, pattern, pattern,scaling)
                 assert os.path.exists(inputDssFile), "input DSS file does not exist:" + inputDssFile
                 _ = runExtract(pattern, scaling, forecastDate, inputDssFile, simulationDssFile)
@@ -369,24 +440,25 @@ def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altNa
                 ResSim.getCurrentModule().saveSimulation()
 
                 # Post Process Results
-                postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, scaling, resultsDssFile)
-
+                postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, scaling, resultsDssFile,
+                                              inputDssFile, pattern)
+                
                 HecDSSFileDataManager().closeAllFiles()
                 os.remove(simulationDssFile)
 
-            HecDSSFileDataManager().closeAllFiles()
-            ResSim.closeWatershed()
-            sys.exit("Finished Compute.....")
+        HecDSSFileDataManager().closeAllFiles()
+        ResSim.closeWatershed()
+        sys.exit("Finished Compute.....")
                     
 
 if __name__ == '__main__':
 
-    simulationDssFile = r"C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast_2023.04.05\rss\2023.04.14-0900\simulation.dss"
+    simulationDssFile = r"C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast_2023.04.05\rss\HC_1986E\simulation.dss"
     watershedWkspFile = r"C:\workspace\git_clones\folsom-hindcast-processing\jythonResSim\model\J6R7HW_SOU_Hindcast_2023.04.05\J6R7HW_SOU_Hindcast.wksp"
-    simName = "2023.04.14-0900"
+    simName = "HC_1986E"
     altName = "HC_Ensembl"
-    dataDir = r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate3'
-    patterns = ['1986','1997'][:1]
+    dataDir = r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate4'
+    patterns = ['1986','1997'][1:]
     main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altName)
 
     """
