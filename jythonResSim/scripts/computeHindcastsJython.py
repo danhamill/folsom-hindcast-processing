@@ -424,7 +424,7 @@ def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altNa
 
         loggerMain.info('Results are stroed in  %s' %(resultsDssFile))
         
-        for scaling in [str(x) for x in range(200, 510, 10)][:1]:
+        for scaling in [str(x) for x in range(200, 510, 10)]:
 
             loggerScaling = myLogger("scaling: %s" %(scaling), loggingFile)
             loggerScaling.info('Processing %s scale factor....'  %(scaling))
@@ -458,7 +458,7 @@ if __name__ == '__main__':
     simName = "HC_1986E"
     altName = "HC_Ensembl"
     dataDir = r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate4'
-    patterns = ['1986','1997'][1:]
+    patterns = ['1986','1997']
     main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altName)
 
     """
