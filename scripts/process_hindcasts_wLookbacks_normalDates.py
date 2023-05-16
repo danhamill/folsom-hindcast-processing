@@ -81,13 +81,13 @@ def main(ensembleStartYear, outDir):
 
     patterns = glob(r'data\*')
     lookup = {}
-    for pattern in patterns[:1]:
+    for pattern in patterns:
 
         patternYear = pattern.split('\\')[-1].split('_')[0]
 
         scalings = glob(f'{pattern}\*')
         eventScaling = scalings[0]
-        scalings = scalings[11:12]
+        scalings = scalings[1:]
 
         lookup[patternYear] = {}
         for scaling in scalings:
@@ -95,9 +95,9 @@ def main(ensembleStartYear, outDir):
             returnInterval = scaling.split('\\')[-1]
             lookup[patternYear][returnInterval] = {}
 
-            outDir = rf'{outDir}\{patternYear}'
-            os.makedirs(outDir, exist_ok=True)
-            dssOut = rf'{outDir}\{patternYear}_{returnInterval}.dss'
+            outDir2 = rf'{outDir}\{patternYear}'
+            os.makedirs(outDir2, exist_ok=True)
+            dssOut = rf'{outDir2}\{patternYear}_{returnInterval}.dss'
             print(f'Currently Processing {dssOut}...')
 
             hindcastFiles = glob(rf'{scaling}\*hefs*.csv')
@@ -106,7 +106,7 @@ def main(ensembleStartYear, outDir):
             offset = pd.Period(year=2999, day=23, month=12, hour=4,  freq='h')
             
             print('Currently Processing hefs files...')
-            for hindcastFile in hindcastFiles:
+            for hindcastFile in hindcastFiles[-1:]:
                 
                 fileDate = hindcastFile.split('\\')[-1].split('_')[0]
                 lookup[patternYear][returnInterval][fileDate] = {}
@@ -170,42 +170,42 @@ def main(ensembleStartYear, outDir):
 
                 print('Currently writing ensembles to dss...') 
                 # Process ensemble hefs to dss
-                data = data.stack(level=[0,1,2,3])
-                data.index.names = ['date','site','tsType','year', 'fileDate']
-                data = data * 1000
-                data = data.loc[data.index.get_level_values('site').isin(sites.keys()),:]
+                # data = data.stack(level=[0,1,2,3])
+                # data.index.names = ['date','site','tsType','year', 'fileDate']
+                # data = data * 1000
+                # data = data.loc[data.index.get_level_values('site').isin(sites.keys()),:]
 
-                grouped = data.groupby(['site', 'year'])
+                # grouped = data.groupby(['site', 'year'])
                 
-                pathNames = []
-                for (site, year), group in grouped:
+                # pathNames = []
+                # for (site, year), group in grouped:
                                        
-                    group.name = 'flow'
-                    group = group.reset_index()
+                #     group.name = 'flow'
+                #     group = group.reset_index()
 
-                    pname = f'/{returnInterval}/{site}/{sites[site]}//1HOUR/C:00{year}|{fileDate}/'
+                #     pname = f'/{returnInterval}/{site}/{sites[site]}//1HOUR/C:00{year}|{fileDate}/'
 
-                    if pname not in pathNames:
-                        pathNames.append(pname)
+                #     if pname not in pathNames:
+                #         pathNames.append(pname)
                     
-                    tsc = TimeSeriesContainer()
-                    tsc.pathname = pname
-                    tsc.startDateTime = group.date.min().strftime('%d%b%Y %H:%M')
-                    tsc.numberValues = group.shape[0]
-                    tsc.granularity = 60
-                    tsc.units = 'cfs'
-                    tsc.type= 'INST-VAL'
-                    tsc.interval = 1
-                    tsc.values = group.flow.to_list()
+                #     tsc = TimeSeriesContainer()
+                #     tsc.pathname = pname
+                #     tsc.startDateTime = group.date.min().strftime('%d%b%Y %H:%M')
+                #     tsc.numberValues = group.shape[0]
+                #     tsc.granularity = 60
+                #     tsc.units = 'cfs'
+                #     tsc.type= 'INST-VAL'
+                #     tsc.interval = 1
+                #     tsc.values = group.flow.to_list()
 
 
-                    fid = HecDss.Open(dssOut, version=6)
-                    fid.put_ts(tsc)
-                    fid.close()
-                    del tsc, group
-                    gc.collect()
+                #     fid = HecDss.Open(dssOut, version=6)
+                #     fid.put_ts(tsc)
+                #     fid.close()
+                #     del tsc, group
+                #     gc.collect()
 
-                del data, grouped
+                # del data, grouped
 
                 #============================================
                 lookback = lookback.stack(level=[0,1,2,3])
@@ -222,8 +222,8 @@ def main(ensembleStartYear, outDir):
 
                     pname = f'/{returnInterval}/{site}/{lookbackSites[site]}//1HOUR/C:00{year}|{fileDate}/'
 
-                    if pname not in pathNames:
-                        pathNames.append(pname)
+                    # if pname not in pathNames:
+                    #     pathNames.append(pname)
                     
                     tsc = TimeSeriesContainer()
                     tsc.pathname = pname
@@ -249,50 +249,66 @@ def main(ensembleStartYear, outDir):
                 #==============
 
                 
-                lookup[patternYear][returnInterval][fileDate]['pathNames'] = pathNames
-                lookup[patternYear][returnInterval][fileDate]['startDate'] = offset.strftime('%d%b%Y %H:%M')
+                # lookup[patternYear][returnInterval][fileDate]['pathNames'] = pathNames
+                # lookup[patternYear][returnInterval][fileDate]['startDate'] = offset.strftime('%d%b%Y %H:%M')
 
                 gc.collect()
                 offset += 24
 
-            # process in the determinsic run from YYYY_Event_Scalings
-            print('here')
+            # # process in the determinsic run from YYYY_Event_Scalings
+            # print('here')
 
-            data = pd.read_excel(
-                eventScaling,
-                sheet_name = returnInterval,
-                skiprows = 7,
-                header=None,
-                names =['date','time','flow'],
-                usecols = 'A:C'
-            )
+            # data = pd.read_excel(
+            #     eventScaling,
+            #     sheet_name = returnInterval,
+            #     skiprows = 7,
+            #     header=None,
+            #     names =['date','time','flow'],
+            #     usecols = 'A:C'
+            # )
 
-            dateUTC = pd.to_datetime(data.date.astype(str) + ' '+ data.time.astype(str), format='%m-%d-%Y %H:%M:%S')
-            dateLocal = convertUtcToPacific(pd.DataFrame(index=pd.DatetimeIndex(dateUTC)))
+            # dateUTC = pd.to_datetime(data.date.astype(str) + ' '+ data.time.astype(str), format='%m-%d-%Y %H:%M:%S')
+            # dateLocal = convertUtcToPacific(pd.DataFrame(index=pd.DatetimeIndex(dateUTC)))
 
-            site = 'FOLC1F'
-            pname = f'/{returnInterval}/{site}/{sites[site]}//1HOUR//'
+            # site = 'FOLC1F'
+            # pname = f'/{returnInterval}/{site}/{sites[site]}//1HOUR//'
 
-            tsc = TimeSeriesContainer()
-            tsc.pathname = pname
-            tsc.startDateTime = dateLocal.index.min().strftime('%d%b%Y %H:%M')
-            tsc.units = 'cfs'
-            tsc.type = 'INST-VAL'
-            tsc.interval=1
-            tsc.numberValues = data.shape[0]
-            tsc.values = data.flow.to_list()
+            # tsc = TimeSeriesContainer()
+            # tsc.pathname = pname
+            # tsc.startDateTime = dateLocal.index.min().strftime('%d%b%Y %H:%M')
+            # tsc.units = 'cfs'
+            # tsc.type = 'INST-VAL'
+            # tsc.interval=1
+            # tsc.numberValues = data.shape[0]
+            # tsc.values = data.flow.to_list()
 
-            with HecDss.Open(dssOut) as fid:
-                fid.put_ts(tsc)
-            del site, pname, tsc, data
-            gc.collect()
+            # with HecDss.Open(dssOut) as fid:
+            #     fid.put_ts(tsc)
+            # del site, pname, tsc, data
+            # gc.collect()
 
-    with open(rf'{outDir.split(os.sep)[0]}\resSimLookup.json', 'w') as f:
-        json.dump(lookup, f, ensure_ascii=False, indent=3)
+    # with open(rf'{outDir.split(os.sep)[0]}\resSimLookup.json', 'w') as f:
+    #     json.dump(lookup, f, ensure_ascii=False, indent=3)
 
 if __name__ == '__main__':
-    outDir = rf'outputNormalDate3'
+    outDir = rf'outputNormalDate4'
     ensembleStartYear = 1980
     main(ensembleStartYear, outDir)
 
     # \\spk-netapp2\Hydrology\Studies\SAC-013\Folsom Dam Raise_SOU\2 Data Transfers\Incoming\Agencies\CNRFC\HindCast_Robustness\20221127 MI Scaled Hindcasts 1986 and 1997\forReview
+    """
+    I am doing some file housekeeping and setting up the area where everyone can review the various stages of the data. 
+    After all the processing is done, I would like to put the files before/after the ResSim routings in this location.
+
+    \\spk-netapp2\Hydrology\Studies\SAC-013\Folsom Dam Raise_SOU\7 Tech Dev\Hindcasts
+
+    Raw RFC Data
+
+    \\spk-netapp2\Hydrology\Studies\SAC-013\Folsom Dam Raise_SOU\7 Tech Dev\Hindcasts\From RFC
+
+    Script Processed Data
+
+    \\spk-netapp2\Hydrology\Studies\SAC-013\Folsom Dam Raise_SOU\7 Tech Dev\Hindcasts\Script Processing\a. Cvs to Dss
+
+    \\spk-netapp2\Hydrology\Studies\SAC-013\Folsom Dam Raise_SOU\7 Tech Dev\Hindcasts\Script Processing\b. ResSim Routings
+    """
