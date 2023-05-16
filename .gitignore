@@ -20,3 +20,8 @@ jythonResSim/model/
 outputNoShift3/resSimLookup.json
 testResSim/untitled/.idea/.gitignore
 outputNormalDate/resSimLookup.json
+outputNormalDate/1986_results.log
+outputNormalDate2/1986_results.log
+outputNormalDate2/resSimLookup.json
+outputNormalDate3/1986_results.log
+outputNormalDate3/resSimLookup.json
