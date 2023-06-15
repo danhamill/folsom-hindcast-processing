@@ -3,9 +3,9 @@ utility scripts to convert CNFRC hindcast to HecDSS format
 
 ## nomenclature
 
-normal dates — refers to time series in US/Pacific
-hefs dates — refers to time series in UTC
-simulation dates — refers to time series in 2999/3000
+- normal dates — refers to time series in US/Pacific
+- hefs dates — refers to time series in UTC
+- simulation dates — refers to time series in 2999/3000
 
 ## Data directory 
 
