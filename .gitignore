@@ -26,3 +26,8 @@ outputNormalDate2/resSimLookup.json
 outputNormalDate3/1986_results.log
 outputNormalDate3/resSimLookup.json
 outputRegulated/
+jythonResSim/scripts/tmp.py
+jythonResSim/jythonResSim.iml
+outputNormalDate4/1986_results.log
+outputNormalDate4/1997_results.log
+outputNormalDate4/resSimLookup.json
