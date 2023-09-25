@@ -45,7 +45,7 @@ def main():
 
     patterns = glob(r'data\*')
 
-    for pattern in patterns:
+    for pattern in patterns[2:]:
 
         patternYear = pattern.split('\\')[-1].split('_')[0]
         outDss = fr'{outDir}\{patternYear}_output_determinstic_v4.dss'
