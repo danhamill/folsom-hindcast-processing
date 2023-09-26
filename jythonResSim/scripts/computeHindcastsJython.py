@@ -1,4 +1,8 @@
-from hec.script import ResSim
+from hec.server import RmiAppImpl
+from hec.io import Identifier
+from hec.rss.model import SimulationExtractModel
+from rma.util import RMAIO
+
 from hec.script import Constants
 from hec.heclib.dss import HecDss
 from hec.io import TimeSeriesContainer
@@ -9,6 +13,7 @@ import os
 import sys
 import logging
 import datetime
+from java.lang import System
 
 SITES = sites = {
     'FOLC1L': 'FLOW-LOC',
@@ -246,7 +251,7 @@ def postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, sc
     for year in range(1980,2021):
         pathNames = []
         for dpart in simulationDParts:
-            pathName = "//FOLSOM/FLOW-IN/%s/1HOUR/C:00%s|HC_ENSEMBL0/" % (dpart, year)
+            pathName = "//FOLSOM-POOL/FLOW-IN/%s/1HOUR/C:00%s|HC_ENSEMBL0/" % (dpart, year)
             pathNames.append(pathName)
         writeResultsToFile(pathNames, simulationDssFile, targetTime,resultsDssFile, forecastDate, scaling, pattern)
 
@@ -385,19 +390,41 @@ def getStartDates(pattern):
 
 def configureResSim(watershedWkspFile, simName, altName):
 
-    #  Res Sim only likes unix-style path
-    watershedWkspFile = watershedWkspFile.replace(os.sep, "/")
-    ResSim.openWatershed(watershedWkspFile)
-    ResSim.selectModule('Simulation')
-    simMode = ResSim.getCurrentModule()
-    # Not sure what this does, but this is the only way to open a simulation
-    simMode.resetWorkspace()
-    simMode.openSimulation(simName)
-    simulation = simMode.getSimulation()
-    # force compute everything
-    simulation.setComputeAll(1)
-    simRun = simulation.getSimulationRun(altName)
-    return simMode, simRun
+    LogLevel =3
+    rmiApp = RmiAppImpl.getApp()
+    workspaceFile = watershedWkspFile.replace(os.sep, "/")
+    assert os.path.isfile(workspaceFile), "####SCRIPT### - Watershed file does exist"
+    id = Identifier(workspaceFile)
+    user = System.getProperty("user.name")
+
+    rmiWksp = rmiApp.openWorkspace(user, id)
+    if rmiWksp == None:
+        print("ERROR: Failed to open Watershed "+workspaceFile)
+
+    rssWksp = rmiWksp.getChildWorkspace("rss")
+
+    wtrshdPath= rssWksp.getWorkspacePath()
+    simulationPath = wtrshdPath+"/rss/"+simName+".simperiod"
+    assert os.path.isfile(simulationPath), "####SCRIPT### - Simulation's simperiod file does exist"
+
+    simId = Identifier(simulationPath)
+    simMgr = rssWksp.getManager("hec.model.SimulationPeriod", simId)
+    if simMgr == None:
+        print("ERROR: Failed to getManager for simulation "+simName)
+
+    simMgr.loadWorkspace(None,wtrshdPath)
+
+    simRun = simMgr.getSimulationRun(altName)
+    if simRun == None:
+        print("ERROR: Failed to find SimulationRun "+altName)
+
+    print("\n####SCRIPT### ----------------------------------------------------------------------------------------------")
+    print("####SCRIPT### Computing alternative: \t" +altName)
+    print("####SCRIPT### ----------------------------------------------------------------------------------------------\n")
+    simRun.getRssAlt().setLogLevel(LogLevel)		#log level controls how much messaging is sent to the console and log
+    simMgr.setComputeAll(Constants.TRUE)
+
+    return simMgr, simRun, rmiWksp, user
 
 def myLogger(name, path):
     logger = logging.getLogger(name)
@@ -410,14 +437,14 @@ def myLogger(name, path):
 
 def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altName ):
     
-    simMode, simRun = configureResSim(watershedWkspFile, simName, altName)
+    simMode, simRun, rmiWksp, user = configureResSim(watershedWkspFile, simName, altName)
 
     for pattern in patterns:
         
-        loggingFile = r'%s/%s_results.log' %(dataDir, pattern)
+        loggingFile = r'%s/%s_results_revised.log' %(dataDir, pattern)
         loggerMain = myLogger("main", loggingFile)
         
-        resultsDssFile = r'%s/%s_results.dss' %(dataDir, pattern)
+        resultsDssFile = r'%s/%s_results_revised.dss' %(dataDir, pattern)
         if not os.path.exists(resultsDssFile):
             fid = HecDss.open(resultsDssFile, 6)
             fid.done()
@@ -436,8 +463,7 @@ def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altNa
                 assert os.path.exists(inputDssFile), "input DSS file does not exist:" + inputDssFile
                 _ = runExtract(pattern, scaling, forecastDate, inputDssFile, simulationDssFile)
                 
-                simMode.computeRun(simRun, -1, Constants.TRUE, Constants.TRUE)
-                ResSim.getCurrentModule().saveSimulation()
+                simMode.computeRun(simRun, -1)
 
                 # Post Process Results
                 postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, scaling, resultsDssFile,
@@ -447,7 +473,7 @@ def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altNa
                 os.remove(simulationDssFile)
 
         HecDSSFileDataManager().closeAllFiles()
-        ResSim.closeWatershed()
+        rmiWksp.closeWorkspace(user)
         sys.exit("Finished Compute.....")
                     
 
