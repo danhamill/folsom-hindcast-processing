@@ -9,6 +9,7 @@ from hec.io import TimeSeriesContainer
 from hec.heclib.util import HecTime
 from hec.hecmath import TimeSeriesMath
 from hec.heclib.dss import HecDSSFileDataManager
+from hec.heclib.dss import HecDSSFileAccess
 import os
 import sys
 import logging
@@ -390,7 +391,8 @@ def getStartDates(pattern):
 
 def configureResSim(watershedWkspFile, simName, altName):
 
-    LogLevel =3
+    LogLevel =1
+    HecDSSFileAccess.setMessageLevel(LogLevel)
     rmiApp = RmiAppImpl.getApp()
     workspaceFile = watershedWkspFile.replace(os.sep, "/")
     assert os.path.isfile(workspaceFile), "####SCRIPT### - Watershed file does exist"
@@ -423,6 +425,7 @@ def configureResSim(watershedWkspFile, simName, altName):
     print("####SCRIPT### ----------------------------------------------------------------------------------------------\n")
     simRun.getRssAlt().setLogLevel(LogLevel)		#log level controls how much messaging is sent to the console and log
     simMgr.setComputeAll(Constants.TRUE)
+
 
     return simMgr, simRun, rmiWksp, user
 
@@ -473,8 +476,8 @@ def main(simulationDssFile, patterns, dataDir, watershedWkspFile, simName, altNa
                 os.remove(simulationDssFile)
 
         HecDSSFileDataManager().closeAllFiles()
-        rmiWksp.closeWorkspace(user)
-        sys.exit("Finished Compute.....")
+    rmiWksp.closeWorkspace(user)
+    sys.exit("Finished Compute.....")
                     
 
 if __name__ == '__main__':
