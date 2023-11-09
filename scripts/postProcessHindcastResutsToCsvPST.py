@@ -101,11 +101,11 @@ def getIssueDates(pattern):
 if __name__ == '__main__':
 
     dataDirs = {
-    '1986': r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate4\1986_results.dss',
-    '1997': r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate4\1997_results.dss',
+    '1986': r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate4\1986_results_revised.dss',
+    '1997': r'C:\workspace\git_clones\folsom-hindcast-processing\outputNormalDate4\1997_results_revised.dss',
     }
 
-    outputDir = r'outputRegulatedPST_newERR'
+    outputDir = r'outputRegulatedPST_FOLSOM_POOL'
 
     timeSeriesLength = 361
     for pattern, dssFile in dataDirs.items():
@@ -182,7 +182,7 @@ if __name__ == '__main__':
                 
                 header = pd.DataFrame(
                     columns = ['times'] + list(range(1980,2021)), 
-                    data = [['America/Los_Angeles'] + ['FOLSOM']*len(range(1980,2021)),
+                    data = [['America/Los_Angeles'] + ['FOLSOM-POOL']*len(range(1980,2021)),
                             ['']    + ['SQIN']*len(range(1980,2021))]
                 )
                 
