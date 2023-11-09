@@ -246,7 +246,7 @@ def writeDeterminsticTimeSereisToResults(pathNames, ensembleAepDssFile, resultsD
     results.put(newTs)
     results.done()
 
-def postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, ensembleAep, modelAep, resultsDssFile,
+def postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, modelAep, ensembleAep, resultsDssFile,
                                   modelAepDssFile,ensembleAepDssFile, pattern):
 
     targetTime = HecTime(startDate)
@@ -287,7 +287,7 @@ def postPorcessHindcastSimulation(startDate, simulationDssFile, forecastDate, en
         pathNames.append(pathName)
     writeDeterminsticTimeSereisToResults(pathNames, ensembleAepDssFile, resultsDssFile, modelAep, ensembleAep)
 
-def runExtract(pattern, scaling, forecastDate, modelAepDssFile, ensembleAepDssFile, simulationDssFile):
+def runExtract(pattern, modelAep, ensembleAep, forecastDate, modelAepDssFile, ensembleAepDssFile, simulationDssFile):
 
     if pattern == '1986':
         blockLookback = '01JAN%s' %{pattern}
@@ -307,7 +307,7 @@ def runExtract(pattern, scaling, forecastDate, modelAepDssFile, ensembleAepDssFi
         for year in range(1980,2021):
             pathNames = []
             for dpart in dPartsOther:
-                pathName = "/%s/%s/%s/%s/1HOUR/C:00%s|%s/" % (scaling, bpart, cpart, dpart, year, forecastDate)
+                pathName = "/%s/%s/%s/%s/1HOUR/C:00%s|%s/" % (ensembleAep, bpart, cpart, dpart, year, forecastDate)
                 pathNames.append(pathName)
             newPath = formatSimulationTimeSeries(ensembleAepDssFile, pathNames, simulationDssFile, pattern)
             newPathNames.append(newPath)
@@ -316,7 +316,7 @@ def runExtract(pattern, scaling, forecastDate, modelAepDssFile, ensembleAepDssFi
         for year in range(1980,2021):
             pathNames = []
             for dpart in dPartsLookback:
-                pathName = "/%s/%s/%s/%s/1HOUR/C:00%s|%s/" % (scaling, bpart, cpart, dpart, year, forecastDate)
+                pathName = "/%s/%s/%s/%s/1HOUR/C:00%s|%s/" % (modelAep, bpart, cpart, dpart, year, forecastDate)
                 pathNames.append(pathName)
             newPath = formatSimulationTimeSeries(modelAepDssFile, pathNames, simulationDssFile, pattern)
             newPathNames.append(newPath)
@@ -450,7 +450,7 @@ def main(simulationDssFile, dataDir, watershedWkspFile, simName, altName ):
     ensembleList = list(range(200,550,50))
     combinations = list(itertools.product(patternList, aepList, ensembleList))
 
-    for pattern, modelAep, ensembleAep in combinations:
+    for pattern, modelAep, ensembleAep in combinations[1:]:
         
         loggingFile = r'%s/%s_E%s_results_revised2.log' %(dataDir, pattern, ensembleAep)
         loggerMain = myLogger("main", loggingFile)
@@ -460,7 +460,7 @@ def main(simulationDssFile, dataDir, watershedWkspFile, simName, altName ):
             fid = HecDss.open(resultsDssFile, 6)
             fid.done()
 
-        loggerMain.info('Results are stroed in  %s' %(resultsDssFile))
+        loggerMain.info('Results are stored in  %s' %(resultsDssFile))
 
         loggerScaling = myLogger("scaling: %s" %(modelAep), loggingFile)
         loggerScaling.info('Processing %s scale factor....'  %(modelAep))
@@ -472,7 +472,7 @@ def main(simulationDssFile, dataDir, watershedWkspFile, simName, altName ):
             ensembleAepDssFile = r'%s/%s/%s_%s.dss' % (dataDir, pattern, pattern, ensembleAep)
 
             assert os.path.exists(modelAepDssFile), "input DSS file does not exist:" + modelAepDssFile
-            _ = runExtract(pattern, modelAep, forecastDate, modelAepDssFile, ensembleAepDssFile, simulationDssFile)
+            _ = runExtract(pattern, modelAep,ensembleAep, forecastDate, modelAepDssFile, ensembleAepDssFile, simulationDssFile)
 
             simMode.computeRun(simRun, -1)
 
